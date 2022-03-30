@@ -1,0 +1,59 @@
+CREATE TABLE tbl
+(id integer PRIMARY KEY,
+ flag boolean NOT NULL,
+ data varchar(50)
+);
+
+insert into tbl (id, flag, data)
+values
+(1,true, 'first row'),
+(2,false, 'second row');
+
+--функция сигнализирующая о внесении изменений в таблицу
+CREATE or REPLACE FUNCTION tbl_changed()
+	RETURNS TRIGGER
+	LANGUAGE PLPGSQL
+	AS
+$$
+BEGIN
+	NOTIFY "Table changed";
+	RETURN NEW;
+END;
+$$
+
+--создание триггеров на изменение таблицы с вызовом функции
+CREATE TRIGGER tbl_changed
+	BEFORE UPDATE
+	ON tbl
+	FOR EACH ROW
+	EXECUTE PROCEDURE tbl_changed();
+
+CREATE TRIGGER tbp_inserted
+	BEFORE INSERT 
+	on tbl
+	EXECUTE PROCEDURE tbl_changed();
+
+CREATE TRIGGER tbp_deleted
+	BEFORE DELETE 
+	on tbl
+	EXECUTE PROCEDURE tbl_changed();
+
+--блок проверки работы приложения
+UPDATE tbl
+set flag = true;
+
+insert into tbl (flag, data)
+values (true, 'ds');
+
+
+INSERT INTO tbl (id, flag, data)
+SELECT x.id, true, 'some data #' || x.id
+  FROM generate_series(3,1000) AS x(id);
+
+DELETE FROM tbl;
+
+  
+  
+  
+  
+	
